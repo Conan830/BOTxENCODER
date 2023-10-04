@@ -3,6 +3,7 @@ import subprocess
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from tqdm import tqdm
+from pydub import AudioSegment
 
 # Define conversation states
 VIDEO, SUBTITLE, ENCODING = range(3)
@@ -34,12 +35,8 @@ async def receive_video(_, message: Message):
         return
 
     if user_data[user_id]["state"] == VIDEO:
-        file_name, file_ext = os.path.splitext(message.document.file_name.lower())
-        if file_ext not in (".mkv", ".mp4"):
-            await message.reply_text("Invalid video file format. Please send an .mkv or .mp4 file.")
-            return
-
-        user_data[user_id]["video_file"] = await message.download()
+        video_file = await message.download()
+        user_data[user_id]["video_file"] = video_file
         await message.reply_text("Video file received! Now, send me the subtitle file (in .srt or .ass format).")
         user_data[user_id]["state"] = SUBTITLE  # Update the state to SUBTITLE
     else:
@@ -54,20 +51,17 @@ async def receive_subtitle(_, message: Message):
         return
 
     if user_data[user_id]["state"] == SUBTITLE:
-        file_name, file_ext = os.path.splitext(message.document.file_name.lower())
-        if file_ext not in (".srt", ".ass"):
-            await message.reply_text("Invalid subtitle file format. Please send a .srt or .ass file.")
-            return
-
-        user_data[user_id]["subtitle_file"] = await message.download()
+        subtitle_file = await message.download()
+        user_data[user_id]["subtitle_file"] = subtitle_file
         await message.reply_text("Subtitle file received! Burning subtitles onto the video. This may take a moment...")
 
         # Start the subtitle burning process
+        video_file = user_data[user_id]["video_file"]
         output_video_file = "output.mp4"
         cmd = [
             'ffmpeg',
-            '-i', user_data[user_id]["video_file"],
-            '-vf', f'subtitles={user_data[user_id]["subtitle_file"]}:force_style=Fontsize=24',
+            '-i', video_file,
+            '-vf', f'subtitles={subtitle_file}:force_style=Fontsize=24',
             '-c:v', 'libx264', '-preset', 'fast',
             output_video_file
         ]
@@ -76,7 +70,7 @@ async def receive_subtitle(_, message: Message):
             process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             with tqdm(total=100, position=0, desc="Burning Subtitles", unit="%", ascii=True) as progress_bar:
                 while True:
-                    output = process.stdout.readline()
+                    output = process.stderr.readline()
                     if output == b'' and process.poll() is not None:
                         break
                     if output:
@@ -85,7 +79,7 @@ async def receive_subtitle(_, message: Message):
                             progress = int(output_str.split("frame=")[-1].split(" ")[1].rstrip("%"))
                             progress_bar.update(progress - progress_bar.n)
 
-            await app.send_video(chat_id=message.chat.id, video=open(output_video_file, "rb"))
+            await app.send_video(chat_id=message.chat.id, video=output_video_file)
             os.remove(output_video_file)
         except subprocess.CalledProcessError:
             await message.reply_text("An error occurred while burning subtitles onto the video.")
