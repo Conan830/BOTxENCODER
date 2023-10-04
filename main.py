@@ -1,16 +1,16 @@
 import os
 import subprocess
 from pyrogram import Client, filters
-from pyrogram.types import InputFile
 
 # Define conversation states
 SUBTITLE, VIDEO = range(2)
 
 # Initialize the Pyrogram Client
-api_id = 7391573  # Replace with your API ID
+api_id = "7391573"  # Replace with your API ID
 api_hash = "1f20df54dfd91bcee05278d3b01da2c7"  # Replace with your API hash
+bot_token = "6449794069:AAG0RoZ7nM8B90Yz3uL7z0ugsjiuaQKEh5E"  # Replace with your bot token
 
-app = Client("encoder_bot", api_id=api_id, api_hash=api_hash, bot_token="6449794069:AAG0RoZ7nM8B90Yz3uL7z0ugsjiuaQKEh5E")
+app = Client("encoder_bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
 
 # Dictionary to store user data during the conversation
 user_data = {}
@@ -18,10 +18,12 @@ user_data = {}
 # Callback function to start the conversation
 @app.on_message(filters.command("start"))
 async def start(_, message):
-    await message.reply_text("Welcome to the Subtitle Burner Bot!")
+    await message.reply_text("Welcome to the Encoder Bot! This is [Beta](https://t.me/EncoderXBot) Version", parse_mode="Markdown")
+    await message.reply_text("Please send the subtitle file.")
+    await SUBTITLE
 
 # Callback function to receive the subtitle file
-@app.on_message(filters.document.mime("text/srt"))
+@app.on_message(filters.document & filters.private)
 async def receive_subtitle(_, message):
     user_id = message.from_user.id
     user_data[user_id] = {"subtitle_file": await message.download()}
@@ -29,7 +31,7 @@ async def receive_subtitle(_, message):
     await VIDEO.set()
 
 # Callback function to receive the video file, burn subtitles, and send the processed video
-@app.on_message(filters.document.mime("video/mp4") & VIDEO)
+@app.on_message(filters.document & filters.private & VIDEO)
 async def receive_video(_, message):
     user_id = message.from_user.id
     user_data[user_id]["video_file"] = await message.download()
@@ -55,6 +57,12 @@ async def receive_video(_, message):
 
     # Clear user data
     del user_data[user_id]
+
+# Error handler for the conversation
+@app.on_message(filters.command("cancel") & filters.private)
+async def cancel(_, message):
+    await message.reply_text("Operation canceled.")
+    await message.stop()
 
 if __name__ == '__main__':
     app.run()
