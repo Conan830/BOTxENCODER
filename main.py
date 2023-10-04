@@ -1,7 +1,8 @@
 import os
 import subprocess
 from telegram import InputFile, Update
-from telegram.ext import Updater, MessageHandler, Filters, CommandHandler, ConversationHandler, CallbackContext
+from telegram.ext import Updater, MessageHandler, CommandHandler, ConversationHandler, CallbackContext
+from telegram.ext import filters as Filters
 
 # Define conversation states
 SUBTITLE, VIDEO = range(2)
