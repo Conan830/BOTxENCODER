@@ -18,7 +18,7 @@ user_data = {}
 # Callback function to start the conversation
 @app.on_message(filters.command("start"))
 async def start(_, message):
-    await message.reply_text("Welcome to the Encoder Bot! This is [Beta](https://t.me/EncoderXBot) Version", parse_mode="Markdown")
+    await message.reply_text("Welcome to the Encoder Bot! This is [Beta](https://t.me/EncoderXBot) Version")
     await message.reply_text("Please send the subtitle file.")
     await SUBTITLE
 
