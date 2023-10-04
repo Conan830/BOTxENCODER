@@ -28,7 +28,7 @@ async def receive_subtitle(_, message):
     user_id = message.from_user.id
     user_data[user_id] = {"subtitle_file": await message.download()}
     await message.reply_text("Subtitle file received! Now, send me the video file.")
-    await VIDEO.set()
+    await VIDEO.set(user_data={})  # Clear user data and set VIDEO state
 
 # Callback function to receive the video file, burn subtitles, and send the processed video
 @app.on_message(filters.document & filters.private & VIDEO)
