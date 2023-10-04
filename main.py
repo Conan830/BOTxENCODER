@@ -1,70 +1,61 @@
 import os
 import subprocess
-from telegram import InputFile, Update
-from telegram.ext import Updater, MessageHandler, CommandHandler, ConversationHandler, CallbackContext
-from telegram.ext import filters as Filters
+from pyrogram import Client, filters
+from pyrogram.types import InputFile
+from pyrogram.errors import RPCError
 
 # Define conversation states
 SUBTITLE, VIDEO = range(2)
 
+# Initialize the Pyrogram Client
+api_id = "7391573"  # Replace with your API ID
+api_hash = "1f20df54dfd91bcee05278d3b01da2c7"  # Replace with your API hash
+bot_token="6449794069:AAG0RoZ7nM8B90Yz3uL7z0ugsjiuaQKEh5E"
+
+app = Client("encoder_bot", api_id=api_id, api_hash=api_hash, bot_token="YOUR_BOT_TOKEN")
+
 # Callback function to start the conversation
-def start(update: Update, context: CallbackContext) -> int:
-    update.message.reply_text("Welcome to the Encoder Bot! This is [Beta](https://t.me/EncoderXBot) Version")
-    return SUBTITLE
+@app.on_message(filters.command("start"))
+async def start(_, message):
+    await message.reply_text("Welcome to the Encoder Bot! This is [Beta](https://t.me/EncoderXBot) Version", parse_mode="Markdown")
+    await message.reply_text("Please send the subtitle file.")
+    await SUBTITLE
 
 # Callback function to receive the subtitle file
-def receive_subtitle(update: Update, context: CallbackContext) -> int:
-    subtitle_file = update.message.document.get_file()
-    context.user_data['subtitle'] = subtitle_file.download()
-    update.message.reply_text("Subtitle file received! Now, send me the video file.")
-    return VIDEO
+@app.on_message(filters.document & filters.private)
+async def receive_subtitle(_, message):
+    subtitle_file = await message.download()
+    await message.reply_text("Subtitle file received! Now, send me the video file.")
+    await VIDEO.set(subtitle=subtitle_file)
 
 # Callback function to receive the video file, burn subtitles, and send the processed video
-def receive_video(update: Update, context: CallbackContext) -> int:
-    video_file = update.message.document.get_file()
-    subtitle_file = context.user_data['subtitle']
+@app.on_message(filters.document & filters.private & VIDEO)
+async def receive_video(_, message, state):
+    video_file = await message.download()
+    subtitle_file = state["subtitle"]
 
     # Process the video with FFmpeg to burn in subtitles
     output_video_file = "output.mp4"
-    subprocess.run([
+    cmd = [
         'ffmpeg',
-        '-i', video_file.download_as_bytearray(),
+        '-i', video_file,
         '-vf', f'subtitles={subtitle_file}:force_style=Fontsize=24',
         '-c:v', 'libx264', '-preset', 'fast',
         output_video_file
-    ])
+    ]
 
-    # Send the processed video back to the user
-    update.message.reply_video(video=InputFile(open(output_video_file, 'rb')))
-    os.remove(output_video_file)
-
-    return ConversationHandler.END
+    try:
+        subprocess.run(cmd, check=True)
+        await message.reply_video(video=output_video_file)
+        os.remove(output_video_file)
+    except subprocess.CalledProcessError:
+        await message.reply_text("An error occurred while processing the video.")
 
 # Error handler for the conversation
-def cancel(update: Update, context: CallbackContext) -> int:
-    update.message.reply_text("Operation canceled.")
-    return ConversationHandler.END
-
-def main():
-    # Initialize the Telegram bot
-    updater = Updater(token='6449794069:AAG0RoZ7nM8B90Yz3uL7z0ugsjiuaQKEh5E', use_context=True)
-    dispatcher = updater.dispatcher
-
-    # Create a conversation handler
-    conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start)],
-        states={
-            SUBTITLE: [MessageHandler(Filters.document.mime_type("text/srt"), receive_subtitle)],
-            VIDEO: [MessageHandler(Filters.document.mime_type("video/mp4"), receive_video)],
-        },
-        fallbacks=[CommandHandler('cancel', cancel)],
-    )
-
-    dispatcher.add_handler(conv_handler)
-
-    # Start the bot
-    updater.start_polling()
-    updater.idle()
+@app.on_message(filters.command("cancel") & filters.private)
+async def cancel(_, message):
+    await message.reply_text("Operation canceled.")
+    await message.stop()
 
 if __name__ == '__main__':
-    main()
+    app.run()
