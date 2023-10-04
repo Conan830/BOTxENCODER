@@ -8,7 +8,7 @@ SUBTITLE, VIDEO = range(2)
 # Initialize the Pyrogram Client
 api_id = "7391573"  # Replace with your API ID
 api_hash = "1f20df54dfd91bcee05278d3b01da2c7"  # Replace with your API hash
-bot_token = "6449794069:AAG0RoZ7nM8B90Yz3uL7z0ugsjiuaQKEh5E"  # Replace with your bot token
+bot_token = "6449794069:AAGDIZLMmHm17PBunAb840ttSYeuggPsOrY"  # Replace with your bot token
 
 app = Client("encoder_bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
 
