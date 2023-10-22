@@ -9,9 +9,9 @@ from pydub import AudioSegment
 VIDEO, SUBTITLE, ENCODING = range(3)
 
 # Initialize the Pyrogram Client
-api_id = "7391573"
-api_hash = "1f20df54dfd91bcee05278d3b01da2c7"
-bot_token = "6449794069:AAGDIZLMmHm17PBunAb840ttSYeuggPsOrY"
+api_id = "9976721"
+api_hash = "3ef17a8cdb938335bd8ba292e6d816aa"
+bot_token = "6916493009:AAET0al193Tfq4qNQHu3naCygFc9be6t5Kg"
 
 app = Client("subtitle_bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
 
